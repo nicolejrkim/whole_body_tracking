@@ -23,6 +23,10 @@ train any sim-to-real-ready motion in the LAFAN1 dataset, without tuning any par
 For sim-to-sim and sim-to-real deployment, please refer to
 the [motion_tracking_controller](https://github.com/HybridRobotics/motion_tracking_controller).
 
+### Alternative Implementations
+
+- There is an alternative reproduction of BeyondMimic in [mjlab](https://github.com/mujocolab/mjlab), a new Isaac Lab-style manager API powered by MuJoCo-Warp for RL and robotics research. See the implementation [here](https://github.com/mujocolab/mjlab/blob/main/src/mjlab/tasks/tracking/tracking_env_cfg.py).
+
 ## Installation
 
 - Install Isaac Lab v2.1.0 by following
