@@ -27,6 +27,7 @@ parser.add_argument(
     default=False,
     help="Always start each resampled motion segment at frame 0 instead of random fragments.",
 )
+parser.add_argument("--episode_length", type=float, default=None, help="Episode length in env steps.")
 # append RSL-RL cli arguments
 cli_args.add_rsl_rl_args(parser)
 # append AppLauncher cli args
@@ -75,6 +76,8 @@ def main(env_cfg: ManagerBasedRLEnvCfg | DirectRLEnvCfg | DirectMARLEnvCfg, agen
     agent_cfg: RslRlOnPolicyRunnerCfg = cli_args.parse_rsl_rl_cfg(args_cli.task, args_cli)
     env_cfg.scene.num_envs = args_cli.num_envs if args_cli.num_envs is not None else env_cfg.scene.num_envs
     env_cfg.commands.motion.start_at_zero = args_cli.start_at_zero
+    if args_cli.episode_length is not None:
+        env_cfg.episode_length_s = args_cli.episode_length
 
     # specify directory for logging experiments
     log_root_path = os.path.join("logs", "rsl_rl", agent_cfg.experiment_name)
