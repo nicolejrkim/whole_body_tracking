@@ -307,7 +307,7 @@ def run_simulator(sim: sim_utils.SimulationContext, scene: InteractiveScene, joi
             print(f"[INFO]: Logging motion to wandb: {COLLECTION}")
             REGISTRY = "motions"
             logged_artifact = run.log_artifact(artifact_or_path="/tmp/motion.npz", name=COLLECTION, type=REGISTRY)
-            run.link_artifact(artifact=logged_artifact, target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}")
+            run.link_artifact(artifact=logged_artifact, target_path=f"wandb-registry-{REGISTRY}/{COLLECTION}", aliases=["latest"])
             print(f"[INFO]: Motion saved to wandb registry: {REGISTRY}/{COLLECTION}")
 
 
