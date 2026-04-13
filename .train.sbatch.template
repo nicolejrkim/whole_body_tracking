@@ -1,106 +1,140 @@
 #!/bin/bash
 # train.sbatch — SLURM batch script for BeyondMimic training on ETH Euler
-# Uses Apptainer container with Isaac Sim 4.5.0 + Isaac Lab v2.1.0
+# Synced from whole_body_tracking via sync_and_submit.sh
 #
-# Submit with environment variables:
-#   TASK=Tracking-Flat-G1-v0 
-#   REGISTRY_NAME="myorg/wandb-registry-motions/walk_fwd"
-#   NUM_ENVS=4096 
-#   MAX_ITERATIONS=10000 
-#   sbatch train.sbatch
+# Usage (from local machine):
+#   REGISTRY_NAME="org/wandb-registry-motions/motion_name" ./sync_and_submit.sh
+#
+# Or direct from Euler:
+#   sbatch /cluster/home/jaerkim/beyondmimic_cluster/train.sbatch
+#   TASK=Tracking-Flat-G1-v0 sbatch --export=ALL,TASK=Tracking-Flat-G1-v0 train.sbatch
 
-#SBATCH --job-name=beyondmimic
+#SBATCH --job-name=wbt-train
 #SBATCH --time=24:00:00
-#SBATCH --gpus=1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
-#SBATCH --mem-per-cpu=8G
-#SBATCH --output=logs/beyondmimic-%j.out
-#SBATCH --error=logs/beyondmimic-%j.err
+#SBATCH --cpus-per-task=8
+#SBATCH --mem-per-cpu=4G
+#SBATCH --partition=gpuhe.24h
+#SBATCH --gpus=rtx_4090:1
+#SBATCH --tmp=100G
+#SBATCH --output=/cluster/home/jaerkim/beyondmimic_cluster/logs/wbt-train_%j.out
+#SBATCH --error=/cluster/home/jaerkim/beyondmimic_cluster/logs/wbt-train_%j.err
 
 set -euo pipefail
 
-# ---- Configuration (from environment or defaults) ----
-TASK="${TASK:-Tracking-Flat-G1-v0}"
-REGISTRY_NAME="${REGISTRY_NAME:?REGISTRY_NAME must be set}"
-NUM_ENVS="${NUM_ENVS:-4096}"
-MAX_ITERATIONS="${MAX_ITERATIONS:-10000}"
-LOG_PROJECT="${LOG_PROJECT:-beyondmimic}"
-WANDB_ENTITY="${WANDB_ENTITY:-}"
-MODE="${MODE:-train}"
-CHECKPOINT="${CHECKPOINT:-}"
+# ---- Load modules ---------------------------------------------------------
+module load eth_proxy   2>/dev/null || true   # internet access on compute node
+module load cuda/12.5   2>/dev/null || true
 
-# ---- Paths ----
-SCRATCH="/cluster/scratch/${USER}"
-WBT_DIR="${SCRATCH}/whole_body_tracking"
-CONTAINER_PATH="${SCRATCH}/containers/beyondmimic.sif"
-CACHE_DIR="${SCRATCH}/isaac-sim-cache"
+CONTAINER_RUNTIME="$(command -v apptainer || command -v singularity || true)"
 
-# ---- Load modules and proxy ----
-module load eth_proxy
-module load singularity  # or apptainer if available
-
-# ---- Verify container exists ----
-if [[ ! -f "${CONTAINER_PATH}" ]]; then
-    echo "ERROR: Container not found at ${CONTAINER_PATH}"
+if [ -z "${CONTAINER_RUNTIME}" ]; then
+    echo "ERROR: neither 'apptainer' nor 'singularity' is available on this node."
     exit 1
 fi
 
-# ---- Copy container to TMPDIR for faster execution ----
-echo "Copying container to compute node local SSD..."
-cp "${CONTAINER_PATH}" "${TMPDIR}/beyondmimic.sif"
-CONTAINER_PATH_LOCAL="${TMPDIR}/beyondmimic.sif"
+JOB_TMPDIR="${TMPDIR:-/tmp/${USER}/wbt-${SLURM_JOB_ID}}"
 
-# ---- Prepare cache directories ----
-mkdir -p "${CACHE_DIR}"/{ov_cache,kit_cache,pip_cache,wandb,huggingface,torch}
+mkdir -p \
+    "${JOB_TMPDIR}/container-tmp" \
+    "${JOB_TMPDIR}/kit-cache" \
+    "${JOB_TMPDIR}/kit-data" \
+    "${JOB_TMPDIR}/ov-cache" \
+    "${JOB_TMPDIR}/pip-cache" \
+    "${JOB_TMPDIR}/glcache" \
+    "${JOB_TMPDIR}/compute-cache" \
+    "${JOB_TMPDIR}/ov-logs" \
+    "${JOB_TMPDIR}/ov-data" \
+    "${JOB_TMPDIR}/documents" \
+    "${JOB_TMPDIR}/extra-packages"
 
-# ---- Build training command ----
-PYTHON_CMD="python /workspace/whole_body_tracking/scripts/rsl_rl/train.py"
-PYTHON_CMD+=" --registry_name='${REGISTRY_NAME}'"
-PYTHON_CMD+=" --task='${TASK}'"
-PYTHON_CMD+=" --num_envs=${NUM_ENVS}"
-PYTHON_CMD+=" --max_iterations=${MAX_ITERATIONS}"
+# ---- Paths ----------------------------------------------------------------
+SIF="/cluster/project/coros/jaerkim/containers/isaac-lab-wbt.sif"
+WBT_DIR="/cluster/scratch/jaerkim/whole_body_tracking"
+DATASET_DIR="/cluster/project/coros/jaerkim/motion_data"
 
-# Append mode-specific flags
-if [[ "${MODE}" == "resume" ]]; then
-    PYTHON_CMD+=" --resume"
-    if [[ -n "${CHECKPOINT}" ]]; then
-        PYTHON_CMD+=" --load_run='${CHECKPOINT}'"
-    fi
-elif [[ "${MODE}" == "play" ]]; then
-    PYTHON_CMD+=" --play"
-    if [[ -n "${CHECKPOINT}" ]]; then
-        PYTHON_CMD+=" --load_run='${CHECKPOINT}'"
-    fi
+# ---- Job parameters (override with environment variables) -----------------
+# From sync_and_submit.sh or --export=ALL
+TASK="${TASK:-Tracking-Flat-G1-v0}"
+REGISTRY_NAME="${REGISTRY_NAME:-jaerkim-org/wandb-registry-motions/dance1}"
+ORGANIZATION="${ORGANIZATION:-jaerkim-eth-zurich}"
+PROJECT_NAME="${PROJECT_NAME:-beyondmimic-training}"
+RUN_NAME="${RUN_NAME:-euler-$(date +%Y%m%d-%H%M%S)}"
+NUM_ENVS="${NUM_ENVS:-4096}"
+MAX_ITERATIONS="${MAX_ITERATIONS:-10000}"
+
+# ---- WandB credentials (set in ~/.bashrc on Euler or via env) -------------
+export WANDB_ENTITY="${WANDB_ENTITY:-${ORGANIZATION}}"
+
+# ---- Validation -----------------------------------------------------------
+mkdir -p /cluster/home/jaerkim/beyondmimic_cluster/logs
+
+if [ ! -f "${SIF}" ]; then
+    echo "ERROR: SIF not found at ${SIF}"
+    echo "Build it on Euler:"
+    echo "  apptainer build --fakeroot ${SIF} docker-archive://isaac-lab-wbt-docker.tar"
+    exit 1
 fi
 
-# WandB settings
-PYTHON_CMD+=" --run_name='beyondmimic_${SLURM_JOB_ID}'"
-PYTHON_CMD+=" --log_project='${LOG_PROJECT}'"
-if [[ -n "${WANDB_ENTITY}" ]]; then
-    PYTHON_CMD+=" --wandb_entity='${WANDB_ENTITY}'"
+if [ ! -d "${WBT_DIR}" ]; then
+    echo "ERROR: whole_body_tracking not found at ${WBT_DIR}"
+    echo "It is synced from your local machine via sync_and_submit.sh."
+    exit 1
 fi
 
-echo "Training command:"
-echo "  ${PYTHON_CMD}"
-echo
+# ---- Print job info -------------------------------------------------------
+echo "======================================================"
+echo " BeyondMimic Training Job"
+echo "======================================================"
+echo " Job ID       : ${SLURM_JOB_ID}"
+echo " Task         : ${TASK}"
+echo " Registry     : ${REGISTRY_NAME}"
+echo " Run name     : ${RUN_NAME}"
+echo " Project      : ${PROJECT_NAME}"
+echo " Num envs     : ${NUM_ENVS}"
+echo " Max iters    : ${MAX_ITERATIONS}"
+echo " SIF          : ${SIF}"
+echo " Runtime      : ${CONTAINER_RUNTIME}"
+echo " TMPDIR       : ${JOB_TMPDIR}"
+echo " Code         : ${WBT_DIR}"
+echo " Dataset      : ${DATASET_DIR}"
+echo "======================================================"
 
-# ---- Run training in Apptainer ----
-echo "Starting training job ${SLURM_JOB_ID}..."
-apptainer exec \
-    --nv \
-    --bind "${WBT_DIR}:/workspace/whole_body_tracking:rw" \
-    --bind "${CACHE_DIR}/ov_cache:${HOME}/.cache/ov:rw" \
-    --bind "${CACHE_DIR}/kit_cache:/isaac-sim/kit/cache:rw" \
-    --bind "${CACHE_DIR}/pip_cache:${HOME}/.cache/pip:rw" \
-    --bind "${CACHE_DIR}/wandb:${HOME}/.local/share/wandb:rw" \
-    --bind "${CACHE_DIR}/huggingface:${HOME}/.cache/huggingface:rw" \
-    --bind "${CACHE_DIR}/torch:${HOME}/.cache/torch:rw" \
-    --env OMNI_KIT_ACCEPT_EULA=YES \
-    --env WANDB_PROJECT="${LOG_PROJECT}" \
-    "${CONTAINER_PATH_LOCAL}" \
-    bash -c "cd /workspace/whole_body_tracking && ${PYTHON_CMD}"
+# ---- Run training ---------------------------------------------------------
+"${CONTAINER_RUNTIME}" exec --nv --writable-tmpfs \
+    --bind "${JOB_TMPDIR}/container-tmp:/tmp" \
+    --bind "${WBT_DIR}:/workspace/whole_body_tracking" \
+    --bind "${DATASET_DIR}:/workspace/beyondmimic_dataset" \
+    --bind "${JOB_TMPDIR}/kit-cache:/isaac-sim/kit/cache" \
+    --bind "${JOB_TMPDIR}/kit-data:/isaac-sim/kit/data" \
+    --bind "${JOB_TMPDIR}/ov-cache:/root/.cache/ov" \
+    --bind "${JOB_TMPDIR}/pip-cache:/root/.cache/pip" \
+    --bind "${JOB_TMPDIR}/glcache:/root/.cache/nvidia/GLCache" \
+    --bind "${JOB_TMPDIR}/compute-cache:/root/.nv/ComputeCache" \
+    --bind "${JOB_TMPDIR}/ov-logs:/root/.nvidia-omniverse/logs" \
+    --bind "${JOB_TMPDIR}/ov-data:/root/.local/share/ov/data" \
+    --bind "${JOB_TMPDIR}/documents:/root/Documents" \
+    --bind "${JOB_TMPDIR}/extra-packages:/extra-packages" \
+    "${SIF}" \
+    bash -lc "cd /workspace/whole_body_tracking && \
+        /workspace/isaaclab/isaaclab.sh -p -m pip install --no-deps -e source/whole_body_tracking && \
+        /workspace/isaaclab/isaaclab.sh -p -m pip install --target=/extra-packages --no-cache-dir wandb==0.25.1 && \
+        export PYTHONPATH=/extra-packages:\${PYTHONPATH:-} && \
+        if [ ! -d source/whole_body_tracking/whole_body_tracking/assets/unitree_description ] && \
+           [ -d /workspace/assets/unitree_description ]; then \
+            cp -r /workspace/assets/unitree_description \
+                  source/whole_body_tracking/whole_body_tracking/assets/unitree_description; \
+        fi && \
+        /workspace/isaaclab/isaaclab.sh -p scripts/rsl_rl/train.py \
+        --task='${TASK}' \
+        --registry_name='${REGISTRY_NAME}' \
+        --num_envs=${NUM_ENVS} \
+        --max_iterations=${MAX_ITERATIONS} \
+        --headless \
+        --logger wandb \
+        --log_project_name '${PROJECT_NAME}' \
+        --run_name '${RUN_NAME}'"
 
-EXIT_CODE=$?
-echo "Job finished with exit code ${EXIT_CODE}"
-exit ${EXIT_CODE}
+echo "======================================================"
+echo " Job finished: $(date)"
+echo "======================================================"
