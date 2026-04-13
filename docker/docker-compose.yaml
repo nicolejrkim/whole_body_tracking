@@ -1,0 +1,148 @@
+x-default-whole-body-tracking-environment: &default-whole-body-tracking-environment
+  - OMNI_KIT_ALLOW_ROOT=1
+
+x-default-whole-body-tracking-deploy: &default-whole-body-tracking-deploy
+  resources:
+    reservations:
+      devices:
+        - driver: nvidia
+          count: all
+          capabilities: [ gpu ]
+
+services:
+  # This service is the production container for whole_body_tracking (BeyondMimic)
+  # This is used for cluster deployments
+  whole-body-tracking:
+    build:
+      context: ../../
+      dockerfile: whole_body_tracking/docker/Dockerfile
+    image: whole-body-tracking
+    pull_policy: never
+    container_name: whole-body-tracking
+    network_mode: host
+    volumes:
+      - type: volume
+        source: isaac-cache-kit
+        target: /isaac-sim/kit/cache
+      - type: volume
+        source: isaac-cache-ov
+        target: /root/.cache/ov
+      - type: volume
+        source: isaac-cache-pip
+        target: /root/.cache/pip
+      - type: volume
+        source: isaac-cache-torch
+        target: /root/.cache/torch
+      - type: volume
+        source: isaac-cache-gl
+        target: /root/.cache/nvidia/GLCache
+      - type: volume
+        source: isaac-cache-compute
+        target: /root/.nv/ComputeCache
+      - type: volume
+        source: isaac-logs
+        target: /root/.nvidia-omniverse/logs
+      - type: volume
+        source: isaac-carb-logs
+        target: /isaac-sim/kit/logs/Kit/Isaac-Sim
+      - type: volume
+        source: isaac-data
+        target: /root/.local/share/ov/data
+      - type: volume
+        source: isaac-docs
+        target: /root/Documents
+      - type: volume
+        source: whole-body-tracking-logs
+        target: /workspace/whole_body_tracking/logs
+      - type: bind
+        source: .isaac-lab-docker-history
+        target: /root/.bash_history
+    environment: *default-whole-body-tracking-environment
+    deploy: *default-whole-body-tracking-deploy
+    # This is the entrypoint for the container
+    entrypoint: bash
+    stdin_open: true
+    tty: true
+  # This service is the development container for whole_body_tracking (BeyondMimic)
+  # It mounts the local files and volumes to the container
+  whole-body-tracking-dev:
+    build:
+      context: ../../
+      dockerfile: whole_body_tracking/docker/Dockerfile.dev
+    image: whole-body-tracking-dev
+    pull_policy: never
+    container_name: whole-body-tracking-dev
+    volumes:
+      - type: volume
+        source: isaac-cache-kit
+        target: /isaac-sim/kit/cache
+      - type: volume
+        source: isaac-cache-ov
+        target: /root/.cache/ov
+      - type: volume
+        source: isaac-cache-pip
+        target: /root/.cache/pip
+      - type: volume
+        source: isaac-cache-torch
+        target: /root/.cache/torch
+      - type: volume
+        source: isaac-cache-gl
+        target: /root/.cache/nvidia/GLCache
+      - type: volume
+        source: isaac-cache-compute
+        target: /root/.nv/ComputeCache
+      - type: volume
+        source: isaac-logs
+        target: /root/.nvidia-omniverse/logs
+      - type: volume
+        source: isaac-carb-logs
+        target: /isaac-sim/kit/logs/Kit/Isaac-Sim
+      - type: volume
+        source: isaac-data
+        target: /root/.local/share/ov/data
+      - type: volume
+        source: isaac-docs
+        target: /root/Documents
+      - type: volume
+        source: whole-body-tracking-logs
+        target: /workspace/whole_body_tracking/logs
+      - type: bind
+        source: .isaac-lab-docker-history
+        target: /root/.bash_history
+      ###
+      # Bind mounts for local files
+      ###
+      - type: bind
+        source: ../../IsaacLab/source
+        target: /workspace/isaaclab/source
+      - type: bind
+        source: ../source
+        target: /workspace/whole_body_tracking/source
+      - type: bind
+        source: ../scripts
+        target: /workspace/whole_body_tracking/scripts
+      - type: bind
+        source: ../LAFAN
+        target: /workspace/whole_body_tracking/LAFAN
+    network_mode: host
+    environment: *default-whole-body-tracking-environment
+    deploy: *default-whole-body-tracking-deploy
+    # This is the entrypoint for the container
+    entrypoint: bash
+    stdin_open: true
+    tty: true
+
+volumes:
+  # isaac-sim
+  isaac-cache-kit:
+  isaac-cache-ov:
+  isaac-cache-pip:
+  isaac-cache-torch:
+  isaac-cache-gl:
+  isaac-cache-compute:
+  isaac-logs:
+  isaac-carb-logs:
+  isaac-data:
+  isaac-docs:
+  # whole_body_tracking
+  whole-body-tracking-logs:

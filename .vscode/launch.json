@@ -1,0 +1,160 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Play Policy",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/play.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/dance1_subject1",
+                "--load_run", "2026-03-19_08-33-28",
+                "--checkpoint", "model_99.pt"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train dance1_subject1 with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/dance1_subject1",
+                // "--num_envs", "64",
+                // "--max_iterations", "100",
+                "--video",
+                "--headless",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "dance1_subject1_50hz"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train Sprint1a with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/sprint1_subject2_stmr_done_50hz",
+                "--video",
+                "--headless",
+                "--max_iterations", "10000",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "sprint1_subject2_stmr_done_50hz"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train Sprint1a_orig with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/sprint1a_stmr_normal_speed",
+                "--video",
+                "--headless",
+                "--max_iterations", "10000",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "sprint1a_stmr_normal_speed"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train Sprint1a_faster with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/sprint1a_faster",
+                "--video",
+                "--headless",
+                "--max_iterations", "10000",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "sprint1a_faster"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train fightAndSports1_subject1_orig with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/fightAndSports1_subject1_orig_30hz",
+                "--video",
+                "--headless",
+                "--max_iterations", "18001",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "fightAndSports1_subject1_orig_30hz"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Train fightAndSports1_subject1_done with Video",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/rsl_rl/train.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--task", "Tracking-Flat-G1-v0",
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/fightAndSports1_subject1_stmr",
+                "--video",
+                "--headless",
+                "--max_iterations", "10000",
+                "--logger", "wandb",
+                "--log_project_name", "whole_body_tracking",
+                "--run_name", "fightAndSports1_subject1_stmr_done_50hz"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Replay Reference Motion",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/replay_npz.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/dance1_subject1"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Test WandB Registry",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/scripts/replay_npz.py",
+            "python": "/home/jaeryeong/miniconda3/envs/env_isaaclab/bin/python",
+            "args": [
+                "--registry_name", "jaerkim-eth-zurich-org/wandb-registry-Motions/dance1_subject1",
+                "--headless"
+            ],
+            "cwd": "${workspaceFolder}",
+            "console": "integratedTerminal"
+        }
+    ]
+}

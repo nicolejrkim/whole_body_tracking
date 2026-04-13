@@ -1,0 +1,23 @@
+x-x11-setup: &default-x11-setup
+  environment:
+    - DISPLAY
+    - TERM
+    - QT_X11_NO_MITSHM=1
+    - XAUTHORITY=${__ISAACLAB_TMP_XAUTH}
+  volumes:
+  - type: bind
+    source: ${__ISAACLAB_TMP_DIR}
+    target: ${__ISAACLAB_TMP_DIR}
+  - type: bind
+    source: /tmp/.X11-unix
+    target: /tmp/.X11-unix
+  - type: bind
+    source: /etc/localtime
+    target: /etc/localtime
+    read_only: true
+
+services:
+  whole-body-tracking:
+    <<: *default-x11-setup
+  whole-body-tracking-dev:
+    <<: *default-x11-setup
