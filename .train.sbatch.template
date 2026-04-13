@@ -14,7 +14,7 @@
 #SBATCH --gpus=1
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=128G
+#SBATCH --mem-per-cpu=8G
 #SBATCH --output=logs/beyondmimic-%j.out
 #SBATCH --error=logs/beyondmimic-%j.err
 
