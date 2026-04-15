@@ -42,3 +42,7 @@ _build
 
 **/assets/
 artifacts/
+
+# Ignore analysis plot
+analysis_plot/
+aligned_motions/
