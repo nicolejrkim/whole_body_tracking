@@ -244,7 +244,7 @@ class MotionCommand(CommandTerm):
         if len(env_ids) == 0:
             return
         if self.cfg.start_at_zero:
-            self.time_steps[env_ids] = 0
+            self.time_steps[env_ids] = min(self.cfg.start_frame, self.motion.time_step_total - 1)
         else:
             self._adaptive_sampling(env_ids)
 
@@ -373,6 +373,7 @@ class MotionCommandCfg(CommandTermCfg):
     adaptive_uniform_ratio: float = 0.1
     adaptive_alpha: float = 0.001
     start_at_zero: bool = False
+    start_frame: int = 0
 
     anchor_visualizer_cfg: VisualizationMarkersCfg = FRAME_MARKER_CFG.replace(prim_path="/Visuals/Command/pose")
     anchor_visualizer_cfg.markers["frame"].scale = (0.2, 0.2, 0.2)
